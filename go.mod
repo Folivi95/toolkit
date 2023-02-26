@@ -1,3 +1,3 @@
-module github.com/joshuafolivi/toolkit
+module github.com/Folivi95/toolkit
 
 go 1.20
