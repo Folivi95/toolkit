@@ -3,7 +3,11 @@ package toolkit
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -12,7 +16,8 @@ const randomStringSource = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 // Tools is the type used to instantiate this module. Any variable of this type will have access
 // to all the methods with the receiver *Tools
 type Tools struct {
-	MaxFileSize int
+	MaxFileSize      int
+	AllowedFileTypes []string
 }
 
 // UploadedFile is a struct used to save information about an uploaded file
@@ -71,20 +76,58 @@ func (t *Tools) UploadFiles(r *http.Request, uploadDir string, rename ...bool) (
 					return nil, err
 				}
 
-				// TODO: check to see if the filetype is permitted
+				// check to see if the filetype is permitted
 				allowed := false
 				fileType := http.DetectContentType(buff)
-				allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 
-				if len(allowedTypes) > 0 {
-					for _, allowedType := range allowedTypes {
+				if len(t.AllowedFileTypes) > 0 {
+					for _, allowedType := range t.AllowedFileTypes {
 						if strings.EqualFold(fileType, allowedType) {
 							allowed = true
 						}
 					}
+				} else {
+					allowed = true
 				}
 
+				if !allowed {
+					return nil, errors.New("the uploaded file type is not permitted")
+				}
+
+				_, err = infile.Seek(0, 0)
+				if err != nil {
+					return nil, err
+				}
+
+				if renameFile {
+					uploadedFile.NewFileName = fmt.Sprintf("%s%s", t.RandomString(25), filepath.Ext(hdr.Filename))
+				} else {
+					uploadedFile.NewFileName = hdr.Filename
+				}
+
+				var outfile *os.File
+				defer outfile.Close()
+
+				if outfile, err = os.Create(filepath.Join(uploadDir, uploadedFile.NewFileName)); err != nil {
+					return nil, err
+				} else {
+					fileSize, err := io.Copy(outfile, infile)
+					if err != nil {
+						return nil, err
+					}
+
+					uploadedFile.FileSize = fileSize
+				}
+
+				uploadedFiles = append(uploadedFiles, &uploadedFile)
+				return uploadedFiles, nil
 			}(uploadedFiles)
+
+			if err != nil {
+				return uploadedFiles, err
+			}
 		}
 	}
+
+	return uploadedFiles, nil
 }
