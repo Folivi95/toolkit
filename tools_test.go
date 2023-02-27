@@ -30,6 +30,10 @@ var slugTests = []struct {
 	errorExpected bool
 }{
 	{name: "valid string", s: "now is the time", expected: "now-is-the-time", errorExpected: false},
+	{name: "empty string", s: "", expected: "", errorExpected: true},
+	{name: "complex string", s: "Now is the time for all GOOD men! + fish & such &^123", expected: "now-is-the-time-for-all-good-men-fish-such-123", errorExpected: false},
+	{name: "japanese string", s: "こんにちは世界", expected: "", errorExpected: true},
+	{name: "japanese string and roman characters", s: "hello world こんにちは世界", expected: "hello-world", errorExpected: false},
 }
 
 func TestTools_RandomString(t *testing.T) {
