@@ -209,6 +209,7 @@ func (t *Tools) DownloadStaticFile(w http.ResponseWriter, r *http.Request, p, fi
 	http.ServeFile(w, r, fp)
 }
 
+// ReadJSON tries to read the body of a request and converts it from json into a go data variable
 func (t *Tools) ReadJSON(w http.ResponseWriter, r *http.Request, data any) error {
 	maxBytes := 1024 * 1024 // on MB
 	if t.MaxJSONSize != 0 {
@@ -262,6 +263,7 @@ func (t *Tools) ReadJSON(w http.ResponseWriter, r *http.Request, data any) error
 	return nil
 }
 
+// WriteJSON takes a response status code and arbitrary data and writes it to the client
 func (t *Tools) WriteJSON(w http.ResponseWriter, status int, data any, headers ...http.Header) error {
 	out, err := json.Marshal(data)
 	if err != nil {
